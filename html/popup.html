@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Form Otomatis</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      width: 380px;
+      min-height: 500px;
+      background: #f5f5f5;
+      color: #333;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0;
+    }
+
+    .app-container {
+      background: #ffffff;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header Bar */
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #ffffff;
+    }
+
+    /* User Info Header */
+    .user-info-header {
+      display: flex;
+      flex-direction: column;
+      align-items: left;
+      gap: 4px;
+    }
+
+    .user-id {
+      font-size: 14px;
+      font-weight: 600;
+      color: #2c3e50;
+    }
+
+    .user-expiry {
+      font-size: 11px;
+      color: #7f8c8d;
+      text-align: center;
+      min-height: 14px;
+    }
+
+    .user-expiry.warning {
+      color: #e67e22;
+      font-weight: 500;
+    }
+
+    .user-expiry.expired {
+      color: #e74c3c;
+      font-weight: 500;
+    }
+
+    .user-expiry.expired::before {
+      content: "⚠ ";
+      font-size: 10px;
+    }
+
+    .user-expiry.warning::before {
+      content: "⏰ ";
+      font-size: 10px;
+    }
+
+    .settings-btn {
+      background: transparent;
+      border: none;
+      padding: 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #666;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .settings-btn:hover {
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    /* Navigation Bar */
+    .navbar {
+      background: #ffffff;
+      display: flex;
+      border-bottom: none;
+      position: relative;
+    }
+
+    .nav-btn {
+      flex: 1;
+      padding: 16px 20px;
+      background: transparent;
+      border: none;
+      color: #999999;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      text-align: center;
+    }
+
+    .nav-btn:hover {
+      color: #4a90e2;
+    }
+
+    .nav-btn.active {
+      color: #4a90e2;
+    }
+
+    .nav-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #4a90e2;
+    }
+
+    /* Content Area */
+    .content-area {
+      flex: 1;
+      overflow: hidden;
+      background: #ffffff;
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: #4a90e2 rgba(0, 0, 0, 0.05);
+      max-height: calc(100vh - 120px);
+      border: none;
+      outline: none;
+      box-shadow: none;
+    }
+
+    /* Hide scrollbar for actions page when content fits */
+    #actionsPage {
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .actions-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* Only show scrollbar for form page */
+    #formPage {
+      overflow-y: auto;
+      max-height: calc(100vh - 120px);
+      padding: 0;
+      margin: 0;
+    }
+
+    /* Custom scrollbar for form page only - Modern Style */
+    #formPage::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    #formPage::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 10px;
+    }
+
+    #formPage::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #4a90e2 0%, #3a7bc8 100%);
+      border-radius: 10px;
+      border: 2px solid transparent;
+      background-clip: content-box;
+      box-shadow: inset 0 0 0 1px rgba(74, 144, 226, 0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #formPage::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, #3a7bc8 0%, #2a6bb0 100%);
+      box-shadow: inset 0 0 0 1px rgba(74, 144, 226, 0.5), 0 2px 8px rgba(74, 144, 226, 0.3);
+      transform: scale(1.05);
+    }
+
+    #formPage::-webkit-scrollbar-thumb:active {
+      background: linear-gradient(180deg, #2a6bb0 0%, #1a5b98 100%);
+      transform: scale(0.95);
+    }
+
+    /* When only login is shown, center it */
+    .content-area.login-only {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+    }
+
+    .page {
+      display: none;
+      padding: 0 20px;
+      animation: fadeIn 0.2s ease;
+      border: none;
+      outline: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    /* Login Section */
+    .login-section {
+      text-align: left;
+      max-width: 300px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .login-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0 0 32px;
+      color: #333;
+      text-align: center;
+    }
+
+    /* When only login is shown, center it properly */
+    .content-area.login-only {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .content-area.login-only .login-section {
+      width: 100%;
+      max-width: 320px;
+      padding: 30px 20px 20px 20px;
+      background: #ffffff;
+      border-radius: 12px;
+      border: none;
+      margin: 0;
+    }
+
+    .login-footer {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #f0f0f0;
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+      line-height: 1.4;
+    }
+
+    /* Footer for actions page */
+    .actions-footer {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 11px;
+      color: #888;
+    }
+
+    .actions-footer a {
+      color: #4a90e2;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .actions-footer a:hover {
+      text-decoration: underline;
+    }
+
+    .site-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .site-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .site-status {
+      font-size: 14px;
+      color: #999;
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .action-btn {
+      width: 100%;
+      padding: 16px 24px;
+      background: #ffffff;
+      color: #4a90e2;
+      border: 1px solid #e5e5e5;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .action-btn:hover {
+      background: #f8f8f8;
+      border-color: #4a90e2;
+    }
+
+    .action-btn.primary {
+      background: #4a90e2;
+      color: white;
+      border-color: #4a90e2;
+    }
+
+    .action-btn.primary:hover {
+      background: #3a7bc8;
+    }
+
+    /* Form Page */
+    .form-container {
+      max-width: 100%;
+      margin: 0;
+      padding: 15px;
+      position: relative;
+      border: none;
+      outline: none;
+    }
+
+    .form-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0 0 24px;
+      text-align: center;
+      color: #333;
+    }
+
+    /* Limit dropdown height when opened */
+    .form-container select {
+      max-height: 40px;
+    }
+
+    /* Override browser default dropdown behavior */
+    .form-container select:focus {
+      max-height: none;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    /* Quick Actions Page */
+    .quick-actions {
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .site-info {
+      margin: 40px 0 40px 0;
+      text-align: center;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #666;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #ffffff;
+      transition: border-color 0.2s ease;
+      margin-bottom: 4px;
+      max-width: 100%;
+      box-sizing: border-box;
+      outline: none;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: #4a90e2;
+    }
+
+    /* Dropdown specific styling - Enhanced */
+    select.form-control {
+      max-height: 40px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      padding-right: 40px;
+    }
+
+    select.form-control:hover {
+      border-color: #4a90e2;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234a90e2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+    }
+
+    select.form-control:focus {
+      border-color: #4a90e2;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234a90e2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+    }
+
+    /* Limit dropdown options height */
+    select.form-control option {
+      padding: 8px 12px;
+      font-size: 13px;
+      max-height: 35px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background-color: white !important;
+      color: #333;
+    }
+
+    select.form-control option:hover {
+      background-color: transparent !important;
+      color: #4a90e2 !important;
+    }
+
+    select.form-control option:checked,
+    select.form-control option:selected {
+      background-color: transparent !important;
+      color: #4a90e2 !important;
+    }
+
+    /* Force override browser default option styling */
+    select.form-control option:focus {
+      background-color: transparent !important;
+      color: #4a90e2 !important;
+    }
+
+    /* Custom Dropdown Styling */
+    .custom-select {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+
+    .custom-select select {
+      display: none; /* Hide original select */
+    }
+
+    .select-selected {
+      background-color: #ffffff;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      padding: 12px 16px;
+      cursor: pointer;
+      position: relative;
+      font-size: 14px;
+      color: #333;
+      transition: all 0.2s ease;
+    }
+
+    .select-selected:after {
+      position: absolute;
+      content: "";
+      top: 50%;
+      right: 16px;
+      width: 0;
+      height: 0;
+      border: 6px solid transparent;
+      border-color: #999 transparent transparent transparent;
+      transform: translateY(-50%);
+      transition: transform 0.2s ease;
+    }
+
+    .select-selected.select-arrow-active:after {
+      border-color: transparent transparent #4a90e2 transparent;
+      transform: translateY(-50%) rotate(180deg);
+    }
+
+    .select-selected:hover {
+      border-color: #4a90e2;
+    }
+
+    .select-items {
+      position: absolute;
+      background-color: #ffffff;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 99;
+      border: 1px solid #e5e5e5;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .select-hide {
+      display: none;
+    }
+
+    .select-items div {
+      color: #333;
+      padding: 12px 16px;
+      border: none;
+      border-top: 1px solid #f5f5f5;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s ease;
+    }
+
+    .select-items div:hover {
+      background-color: #f8f9fa;
+      color: #4a90e2;
+    }
+
+    .select-items div.same-as-selected {
+      background-color: #4a90e2;
+      color: white;
+    }
+
+    /* Custom scrollbar for dropdown */
+    .select-items::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .select-items::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    .select-items::-webkit-scrollbar-thumb {
+      background: #4a90e2;
+      border-radius: 3px;
+    }
+
+    .select-items::-webkit-scrollbar-thumb:hover {
+      background: #3a7bc8;
+    }
+
+    /* User Info */
+    .user-info {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      text-align: center;
+      border: 1px solid #e5e5e5;
+    }
+
+    .user-info p {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: #333;
+      font-weight: 500;
+    }
+
+    .logout-btn {
+      background: #ffffff;
+      color: #4a90e2;
+      border: 1px solid #4a90e2;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .logout-btn:hover {
+      background: #4a90e2;
+      color: white;
+    }
+
+    /* Buttons */
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .btn-group .btn {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .btn {
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: #4a90e2;
+      color: white;
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      background: #3a7bc8;
+    }
+
+    .btn-secondary {
+      background: #f8f9fa;
+      color: #666;
+      border: 1px solid #e5e5e5;
+    }
+
+    .btn-secondary:hover {
+      background: #e9ecef;
+    }
+
+    /* Admin Section */
+    .admin-section {
+      background: #fff3cd;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      border: 1px solid #ffeaa7;
+      text-align: center;
+    }
+
+    .admin-section h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: #856404;
+      font-weight: 600;
+    }
+
+    .admin-section p {
+      margin: 0 0 16px;
+      font-size: 12px;
+      color: #856404;
+    }
+
+    /* Checkbox */
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8f9fa;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      border: 1px solid #e5e5e5;
+    }
+
+    .checkbox-group label {
+      margin: 0;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 500;
+      color: #666;
+    }
+
+    /* Status */
+    .status {
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 12px;
+      font-weight: 500;
+      text-align: center;
+      min-height: 20px;
+    }
+
+    .status.error {
+      background: #fee;
+      color: #c53030;
+      border: 1px solid #fed7d7;
+    }
+
+    .status.success {
+      background: #f0fff4;
+      color: #38a169;
+      border: 1px solid #c6f6d5;
+    }
+
+    .status:empty {
+      display: none;
+    }
+
+    /* Hidden */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Trial Status Section */
+    .trial-status-section {
+      margin-bottom: 24px;
+    }
+
+    .trial-info {
+      background: #e8f4fd;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid #bee5eb;
+      text-align: center;
+    }
+
+    .trial-info h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: #0c5460;
+      font-weight: 600;
+    }
+
+    .trial-info p {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: #0c5460;
+    }
+
+    .trial-info p:last-child {
+      margin-bottom: 0;
+    }
+
+    .trial-note {
+      font-size: 11px !important;
+      color: #6c757d !important;
+      font-style: italic;
+    }
+
+    #trialDays {
+      font-weight: 600;
+      color: #0c5460;
+    }
+    /* Auto Toggle Section */
+    .auto-toggle-section {
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+  <div class="app-container">
+    <!-- Header Bar -->
+    <div class="header-bar">
+      <div class="user-info-header">
+        <span class="user-id" id="headerUserId">Guest</span>
+        <div class="user-expiry" id="userExpiry">
+          <!-- Expiration info will be inserted here -->
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="settings-btn" id="settingsBtn" title="Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="navbar">
+      <button class="nav-btn active" data-page="actions">Aksi Cepat</button>
+      <button class="nav-btn" data-page="form">Form Data</button>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+      <!-- Login Section (shown by default when not logged in) -->
+      <div id="loginSection" class="login-section">
+        <h2 class="login-title">Login Sistem</h2>
+        <div class="form-group">
+          <label for="userId" class="form-label">User ID</label>
+          <input type="text" class="form-control" id="userId" placeholder="Masukkan User ID" required>
+        </div>
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" class="form-control" id="password" placeholder="Masukkan Password" required>
+        </div>
+        <button type="button" id="loginButton" class="btn btn-primary" style="width: 100%;">Login</button>
+        <div id="loginStatus" class="status"></div>
+        
+        <!-- Login Footer -->
+        <div class="login-footer">
+          <p id="loginFooterText">Silakan login terlebih dahulu untuk mengakses fitur auto-fill formulir secara otomatis.</p>
+        </div>
+      </div>
+
+      <!-- Quick Actions Page -->
+      <div id="actionsPage" class="page active">
+        <div class="actions-content">
+          <div class="quick-actions">
+            <div class="site-info">
+              <div class="site-icon">
+                <img src="../icon.png" alt="Icon" width="52" height="52">
+              </div>
+              <div class="site-name">antrianpanganbersubsidi.pasarjaya.co.id</div>
+              <div class="site-status">Siap digunakan</div>
+            </div>
+
+            <div class="action-buttons">
+              <button type="button" id="openWeb" class="action-btn">
+                Buka Situs
+              </button>
+              <button type="button" id="runScript" class="action-btn primary">
+                Jalankan Auto-Fill
+              </button>
+            </div>
+          </div>
+
+          <!-- User Info (hidden - removed welcome message and logout) -->
+          <div id="userInfo" class="user-info hidden" style="display: none;">
+            <p>Selamat datang, <span id="userName"></span>!</p>
+            <button type="button" id="logoutButton" class="logout-btn">Logout</button>
+          </div>
+
+          <!-- Trial Status Section -->
+          <div id="trialStatusSection" class="trial-status-section hidden">
+            <div class="trial-info">
+              <h3>Mode Trial</h3>
+              <p id="trialMessage">Sisa waktu trial: <span id="trialDays">3</span> hari</p>
+              <p class="trial-note">Setelah trial berakhir, Anda perlu login untuk melanjutkan menggunakan aplikasi.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions Footer -->
+        <div class="actions-footer">
+          <p>&copy; 2025 <a href="https://github.com/RacoonHQ" target="_blank">RacoonHQ</a> All rights reserved</p>
+        </div>
+      </div>
+
+      <!-- Form Data Page -->
+      <div id="formPage" class="page">
+        <div class="form-container">
+          <h3 class="form-title">Data Profil</h3>
+          <p class="form-description" style="text-align: justify; font-size: 13px; color: #666; margin-bottom: 20px; line-height: 1.5;">
+            <strong>Kebijakan Privasi:</strong> Data yang Anda masukkan hanya disimpan sementara di local storage browser Anda dan tidak pernah dikirim atau disimpan ke server manapun. Kami menghormati privasi Anda dan tidak mengumpulkan data pribadi apapun. Data akan otomatis terhapus ketika Anda menutup browser atau membersihkan cache.
+          </p>
+
+          <form id="profileForm">
+            <!-- Row 0: Wilayah & Lokasi -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="wilayahSelect" class="form-label">Wilayah</label>
+                <select class="form-control" id="wilayahSelect" required>
+                  <option value="">Pilih Wilayah</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="lokasiSelect" class="form-label">Lokasi</label>
+                <select class="form-control" id="lokasiSelect" required>
+                  <option value="">Pilih Lokasi</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Row 1: KK & KTP -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="kkInput" class="form-label">No. Kartu Keluarga</label>
+                <input type="text" class="form-control" id="kkInput" maxlength="16" placeholder="Masukan No KK" required>
+              </div>
+              <div class="form-group">
+                <label for="ktpInput" class="form-label">No. KTP</label>
+                <input type="text" class="form-control" id="ktpInput" maxlength="16" placeholder="Masukan No KTP" required>
+              </div>
+            </div>
+
+            <!-- Row 2: Kartu & Tanggal Lahir -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="kartuInput" class="form-label">No. Kartu ATM</label>
+                <input type="text" class="form-control" id="kartuInput" maxlength="16" placeholder="Masukan No ATM" required>
+              </div>
+              <div class="form-group">
+                <label for="tanggalLahirInput" class="form-label">Tanggal Lahir</label>
+                <input type="date" class="form-control" id="tanggalLahirInput" required>
+              </div>
+            </div>
+
+            <!-- Auto Submit Toggle -->
+            <div class="checkbox-group">
+              <label for="autoSubmitToggle">Auto-submit setelah fill</label>
+              <input type="checkbox" id="autoSubmitToggle">
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="btn-group">
+              <button type="button" id="saveProfile" class="btn btn-primary">Simpan</button>
+              <button type="button" id="resetLocation" class="btn btn-secondary">Reset Lokasi</button>
+            </div>
+
+            <div class="btn-group">
+              <button type="button" id="resetAll" class="btn btn-secondary">Reset Semua</button>
+            </div>
+
+            <div id="statusText" class="status"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/popup.js"></script>
+  <script src="../js/navigation.js"></script>
+</body>
+</html>

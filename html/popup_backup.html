@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Form Otomatis</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      width: 380px;
+      min-height: 500px;
+      background: #ffffff;
+      color: #333;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .app-container {
+      background: #ffffff;
+      border-radius: 0;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navigation Bar */
+    .navbar {
+      background: #ffffff;
+      display: flex;
+      border-bottom: 1px solid #e5e5e5;
+      position: relative;
+    }
+
+    .nav-btn {
+      flex: 1;
+      padding: 16px 20px;
+      background: transparent;
+      border: none;
+      color: #999999;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      text-align: center;
+    }
+
+    .nav-btn:hover {
+      color: #e53e3e;
+    }
+
+    .nav-btn.active {
+      color: #e53e3e;
+    }
+
+    .nav-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #e53e3e;
+    }
+
+    /* Content Area */
+    .content-area {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      background: #ffffff;
+    }
+
+    .page {
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Login Section */
+    .login-section {
+      text-align: center;
+      max-width: 300px;
+      margin: 0 auto;
+    }
+
+    .login-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0 0 32px;
+      color: #333;
+    }
+
+    /* Quick Actions Page */
+    .quick-actions {
+      text-align: center;
+      padding: 40px 0;
+    }
+
+    .site-info {
+      margin-bottom: 40px;
+    }
+
+    .site-icon {
+      width: 48px;
+      height: 48px;
+      background: #e53e3e;
+      border-radius: 8px;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .site-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .site-status {
+      font-size: 14px;
+      color: #999;
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 40px;
+    }
+
+    .action-btn {
+      width: 100%;
+      padding: 16px 24px;
+      background: #ffffff;
+      color: #e53e3e;
+      border: 1px solid #e5e5e5;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .action-btn:hover {
+      background: #f8f8f8;
+      border-color: #e53e3e;
+    }
+
+    .action-btn.primary {
+      background: #e53e3e;
+      color: white;
+      border-color: #e53e3e;
+    }
+
+    .action-btn.primary:hover {
+      background: #d53030;
+    }
+
+    /* Content Area */
+    .content-area {
+      padding: 20px;
+      min-height: 320px;
+    }
+
+    .page {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Login Section */
+    .login-section {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .login-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 20px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Quick Actions Page */
+    .quick-actions {
+      text-align: center;
+      padding: 30px 0;
+    }
+
+    .action-btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+    }
+
+    /* Form Page */
+    .form-container {
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .form-container::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .form-container::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    .form-container::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+
+    .form-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0 0 20px;
+      text-align: center;
+      color: #2d3748;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #4a5568;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #fff;
+      transition: all 0.3s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      transform: translateY(-1px);
+    }
+
+    /* User Info */
+    .user-info {
+      background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      border: 1px solid #e2e8f0;
+      text-align: center;
+    }
+
+    .user-info p {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: #2d3748;
+      font-weight: 600;
+    }
+
+    .logout-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .logout-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Buttons */
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .btn-group .btn {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .btn {
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e0 100%);
+      color: #4a5568;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-secondary:hover {
+      background: linear-gradient(135deg, #cbd5e0 0%, #a0aec0 100%);
+      transform: translateY(-1px);
+    }
+
+    /* Admin Section */
+    .admin-section {
+      background: linear-gradient(135deg, #fffaf0 0%, #faf089 20%);
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      border: 1px solid #f6e05e;
+      text-align: center;
+    }
+
+    .admin-section h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: #744210;
+      font-weight: 700;
+    }
+
+    .admin-section p {
+      margin: 0 0 12px;
+      font-size: 11px;
+      color: #744210;
+    }
+
+    /* Checkbox */
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .checkbox-group label {
+      margin: 0;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 500;
+      color: #4a5568;
+    }
+
+    /* Status */
+    .status {
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-top: 8px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .status.error {
+      background: linear-gradient(135deg, #fed7d7 0%, #feb2b2 100%);
+      color: #9c2e2e;
+      border: 1px solid #fc8181;
+    }
+
+    .status.success {
+      background: linear-gradient(135deg, #c6f6d5 0%, #9ae6b4 100%);
+      color: #2f855a;
+      border: 1px solid #68d391;
+    }
+
+    /* Hidden */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Smooth scrolling */
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Navigation Bar -->
+    <div class="navbar">
+      <button class="nav-btn active" data-page="actions">Aksi</button>
+      <button class="nav-btn" data-page="form">Form Data</button>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+      <!-- Login Section (shown by default when not logged in) -->
+      <div id="loginSection" class="login-section">
+        <h2 class="login-title">Login Sistem</h2>
+        <div class="form-group">
+          <label for="userId" class="form-label">User ID</label>
+          <input type="text" class="form-control" id="userId" placeholder="Masukkan User ID" required>
+        </div>
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" class="form-control" id="password" placeholder="Masukkan Password" required>
+        </div>
+        <button type="button" id="loginButton" class="btn btn-primary" style="width: 100%;">Login</button>
+        <div id="loginStatus" class="status"></div>
+      </div>
+
+      <!-- Quick Actions Page -->
+      <div id="actionsPage" class="page active">
+        <div class="quick-actions">
+          <button type="button" id="openWeb" class="action-btn">Buka Situs</button>
+          <button type="button" id="runScript" class="action-btn">Jalankan</button>
+        </div>
+
+        <!-- User Info (shown when logged in) -->
+        <div id="userInfo" class="user-info hidden">
+          <p>Selamat datang, <span id="userName"></span>!</p>
+          <button type="button" id="logoutButton" class="logout-btn">Logout</button>
+        </div>
+
+        <!-- Admin Section (shown when admin) -->
+        <div id="adminSection" class="admin-section hidden">
+          <h3>Mode Admin</h3>
+          <p>Kelola pengguna sistem</p>
+          <div class="btn-group">
+            <button type="button" id="manageUsersBtn" class="btn btn-secondary">Kelola User</button>
+            <button type="button" id="syncDataBtn" class="btn btn-secondary">Sync Data</button>
+          </div>
+        </div>
+
+        <!-- Auto Mode Toggle -->
+        <div id="autoToggleSection" class="hidden">
+          <div class="checkbox-group">
+            <label for="autoToggle">Auto-fill otomatis (07:00)</label>
+            <input type="checkbox" id="autoToggle">
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Data Page -->
+      <div id="formPage" class="page">
+        <div class="form-container">
+          <h3 class="form-title">Data Profil</h3>
+
+          <form id="profileForm">
+            <!-- Row 1: Wilayah & Lokasi -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="wilayahSelect" class="form-label">Wilayah</label>
+                <select class="form-control" id="wilayahSelect" required></select>
+              </div>
+              <div class="form-group">
+                <label for="lokasiSelect" class="form-label">Lokasi</label>
+                <select class="form-control" id="lokasiSelect" required></select>
+              </div>
+            </div>
+
+            <!-- Row 2: KK & KTP -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="kkInput" class="form-label">No. Kartu Keluarga</label>
+                <input type="text" class="form-control" id="kkInput" maxlength="16" placeholder="16 digit" required>
+              </div>
+              <div class="form-group">
+                <label for="ktpInput" class="form-label">No. KTP</label>
+                <input type="text" class="form-control" id="ktpInput" maxlength="16" placeholder="16 digit" required>
+              </div>
+            </div>
+
+            <!-- Row 3: Kartu & Tanggal Lahir -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="kartuInput" class="form-label">No. Kartu</label>
+                <input type="text" class="form-control" id="kartuInput" maxlength="16" placeholder="16 digit" required>
+              </div>
+              <div class="form-group">
+                <label for="tanggalLahirInput" class="form-label">Tanggal Lahir</label>
+                <input type="date" class="form-control" id="tanggalLahirInput" required>
+              </div>
+            </div>
+
+            <!-- Auto Submit Toggle -->
+            <div class="checkbox-group">
+              <label for="autoSubmitToggle">Auto-submit setelah fill</label>
+              <input type="checkbox" id="autoSubmitToggle">
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="btn-group">
+              <button type="button" id="saveProfile" class="btn btn-primary">Simpan</button>
+              <button type="button" id="resetLocation" class="btn btn-secondary">Reset Lokasi</button>
+            </div>
+
+            <div class="btn-group">
+              <button type="button" id="resetAll" class="btn btn-secondary">Reset Semua</button>
+            </div>
+
+            <div id="statusText" class="status"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+  <script>
+    // Navigation functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const navBtns = document.querySelectorAll('.nav-btn');
+      const pages = document.querySelectorAll('.page');
+
+      // Handle navigation clicks
+      navBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const targetPage = this.getAttribute('data-page');
+
+          // Remove active class from all nav buttons
+          navBtns.forEach(navBtn => navBtn.classList.remove('active'));
+
+          // Add active class to clicked button
+          this.classList.add('active');
+
+          // Hide all pages
+          pages.forEach(page => page.classList.remove('active'));
+
+          // Show target page
+          document.getElementById(targetPage + 'Page').classList.add('active');
+        });
+      });
+    });
+  </script>
+</body>
+</html>

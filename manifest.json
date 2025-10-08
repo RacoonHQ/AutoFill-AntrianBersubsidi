@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Form Otomatis Paket Sembako",
+  "version": "1.0",
+  "description": "Mengisi form KTP, KK, dan ATM secara otomatis.",
+  "permissions": [
+    "scripting",
+    "activeTab",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://raw.githubusercontent.com/*",
+    "https://antrianpanganbersubsidi.pasarjaya.co.id/*"
+  ],
+  "action": {
+    "default_popup": "html/popup.html",
+    "default_icon": {
+      "16": "icon.png"
+    }
+  },
+  "background": {
+    "service_worker": "js/background.js"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://raw.githubusercontent.com https://antrianpanganbersubsidi.pasarjaya.co.id; default-src 'self'"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "data/*.json"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "icons": {
+    "128": "icon.png"
+  }
+}
