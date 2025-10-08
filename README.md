@@ -56,13 +56,6 @@ Proyek ini adalah ekstensi Chrome berbasis Manifest V3 dengan **sistem autentika
    └── README.md
    ```
 
-3. **Kode sudah diupdate** untuk menggunakan repository Anda:
-   ```javascript
-   // popup.js baris 2-3
-   const USER_DATA_REPO = 'https://raw.githubusercontent.com/RacoonHQ/KJP/main/';
-   const PROFILES_DATA_REPO = 'https://raw.githubusercontent.com/RacoonHQ/KJP/main/';
-   ```
-
 ### 2. Setup User Database (`data/user.json`)
 ```json
 {
