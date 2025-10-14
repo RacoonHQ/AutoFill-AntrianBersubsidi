@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Form Otomatis Paket Sembako",
-  "version": "1.0",
+  "version": "2.0.0",
   "description": "Mengisi form KTP, KK, dan ATM secara otomatis.",
   "permissions": [
     "scripting",
