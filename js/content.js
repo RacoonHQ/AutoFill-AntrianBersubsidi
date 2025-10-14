@@ -5,27 +5,43 @@ var STORAGE_KEYS = {
 
 async function initAutofill() {
   try {
+    console.log('Starting autofill process...');
+
     // Check authentication first
+    console.log('Checking authentication...');
     const isAuth = await checkAuthentication();
+    console.log('Authentication status:', isAuth);
 
     if (!isAuth) {
       console.log('User not authenticated, skipping autofill');
-      return;
+      throw new Error('User tidak ter-authentikasi. Silakan login terlebih dahulu.');
     }
 
+    console.log('Getting stored profile...');
     const [{ profile: storedProfile }] = await Promise.all([
       getStoredProfile()
     ]);
 
     const profile = storedProfile;
+    console.log('Profile data:', profile);
+
     if (!profile) {
       console.log('No profile found');
-      return;
+      throw new Error('Data profil tidak ditemukan. Silakan isi data di Form Data terlebih dahulu.');
     }
 
+    if (!profile.kk || !profile.ktp || !profile.atm || !profile.tanggalLahir) {
+      console.log('Profile incomplete:', profile);
+      throw new Error('Data profil belum lengkap. Pastikan semua field sudah diisi.');
+    }
+
+    console.log('Applying profile to form...');
     await applyProfile(profile);
+    console.log('Profile applied successfully');
+
   } catch (error) {
     console.error('Gagal memuat data profil:', error);
+    throw error;
   }
 }
 
@@ -52,30 +68,43 @@ function getStoredProfile() {
 }
 
 async function applyProfile(profile) {
+  console.log('Starting to apply profile:', profile);
+
   const wilayahSelect = document.getElementById('wilayah');
-  if (!wilayahSelect) return;
+  console.log('Wilayah select element:', wilayahSelect);
+
+  if (!wilayahSelect) {
+    throw new Error('Elemen form "wilayah" tidak ditemukan di halaman');
+  }
 
   if (selectOptionByValueOrIndex(wilayahSelect, profile.wilayah)) {
+    console.log('Wilayah selected:', profile.wilayah);
     wilayahSelect.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
   const lokasiSelected = await waitForLokasiSelection(profile.lokasi);
   if (lokasiSelected) {
     const lokasiSelect = document.getElementById('lokasi');
+    console.log('Lokasi selected:', profile.lokasi);
     lokasiSelect.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
   await delay(200);
+  console.log('Setting input values...');
   setInputValue('kk', profile.kk);
   setInputValue('ktp', profile.ktp);
   setInputValue('kartu', profile.atm);
   setInputValue('thn', profile.tanggalLahir);
 
+  console.log('Checking agreement box...');
   checkAgreementBox();
 
   if (profile.autoSubmit) {
+    console.log('Auto-submit enabled, triggering submit...');
     triggerSubmit();
   }
+
+  console.log('Profile application completed');
 }
 
 function waitForLokasiSelection(targetLokasi, timeout = 6000, interval = 200) {
@@ -165,7 +194,28 @@ function triggerSubmit() {
   }
 }
 
-initAutofill();
+// Listen for messages from popup script
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Content script received message:', message);
+
+  if (message.action === 'runAutofill') {
+    console.log('Received runAutofill message from popup');
+
+    // Run autofill asynchronously
+    initAutofill()
+      .then(() => {
+        console.log('Autofill completed successfully');
+        sendResponse({ success: true, message: 'Autofill completed' });
+      })
+      .catch((error) => {
+        console.error('Autofill failed:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+
+    // Return true to indicate we'll respond asynchronously
+    return true;
+  }
+});
 
 // Fungsi untuk menangani pengisian captcha secara manual dan klik tombol simpan
 function autoFillAndSubmit() {

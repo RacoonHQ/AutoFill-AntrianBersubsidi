@@ -9,17 +9,18 @@ const PROFILES_DATA_URL = 'data/profiles.json';
 // Edit array ini untuk mengubah URL yang akan dibuka otomatis setiap jam 07:00
 // Pastikan semua URL valid dan dapat diakses
 const AUTO_OPEN_URLS = [
-  'https://antrianpanganbersubsidi.pasarjaya.co.id/',
-  'https://antrianpanganbersubsidi.pasarjaya.co.id/',
-  'https://antrianpanganbersubsidi.pasarjaya.co.id/',
-  'https://antrianpanganbersubsidi.pasarjaya.co.id/',
-  'https://antrianpanganbersubsidi.pasarjaya.co.id/'
+  'https://antrianpanganbersubsidi.pasarjaya.co.id/?tab=1',
+  'https://antrianpanganbersubsidi.pasarjaya.co.id/?tab=2',
+  'https://antrianpanganbersubsidi.pasarjaya.co.id/?tab=3',
+  'https://antrianpanganbersubsidi.pasarjaya.co.id/?tab=4',
+  'https://antrianpanganbersubsidi.pasarjaya.co.id/?tab=5'
 ];
 
 const STORAGE_KEYS = {
   AUTH: 'authData',
   PROFILE: 'profileData',
-  LAST_UPDATE: 'lastDataUpdate'
+  LAST_UPDATE: 'lastDataUpdate',
+  AUTO_OPEN_SETTINGS: 'autoOpenSettings'
 };
 // DOM Elements for admin section
 let adminSection, userList, addUserBtn, syncDataBtn, newUserId, newPassword, newExpiry;
@@ -27,13 +28,11 @@ let userFormSection, loginButton, logoutButton;
 let userIdInput, passwordInput, loginStatus, userNameDisplay;
 let loginSection;
 
-// Header elements
-let headerUserId, settingsBtn, userExpiry;
-// Form elements
-let kkInput, ktpInput, kartuInput, tanggalLahirInput, autoSubmitToggle;
-let wilayahSelect, lokasiSelect, saveButton, resetLocationButton, resetAllButton, statusText;
-
+// Navbar element
+let navbar;
 // Initialize DOM elements
+let openWebBtn, runScriptBtn;
+
 function initializeElements() {
   // Authentication elements
   loginSection = document.getElementById('loginSection');
@@ -52,6 +51,13 @@ function initializeElements() {
   settingsBtn = document.getElementById('settingsBtn');
   userExpiry = document.getElementById('userExpiry');
 
+  // Navbar element
+  navbar = document.querySelector('.navbar');
+
+  // Quick Actions elements
+  openWebBtn = document.getElementById('openWeb');
+  runScriptBtn = document.getElementById('runScript');
+
   // Form elements
   kkInput = document.getElementById('kkInput');
   ktpInput = document.getElementById('ktpInput');
@@ -62,8 +68,97 @@ function initializeElements() {
   lokasiSelect = document.getElementById('lokasiSelect');
   saveButton = document.getElementById('saveProfile');
   resetLocationButton = document.getElementById('resetLocation');
-  resetAllButton = document.getElementById('resetAll');
-  statusText = document.getElementById('statusText');
+
+  // Settings elements
+  autoFillToggle = document.getElementById('autoFillToggle');
+  autoOpenWebsiteToggle = document.getElementById('autoOpenWebsiteToggle');
+  testAutoOpen = document.getElementById('testFeatures');
+  settingsLogoutButton = document.getElementById('settingsLogoutButton');
+  settingsUserId = document.getElementById('settingsUserId');
+  settingsUserStatus = document.getElementById('settingsUserStatus');
+  settingsUserExpiry = document.getElementById('settingsUserExpiry');
+  backToMain = document.getElementById('backToMain');
+  settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
+
+  console.log('DOM elements initialized:', {
+    autoFillToggle: !!autoFillToggle,
+    autoOpenWebsiteToggle: !!autoOpenWebsiteToggle,
+    testAutoOpen: !!testAutoOpen
+  });
+}
+
+function handleOpenWebsite() {
+  console.log('Opening website tab...');
+
+  // Show loading state
+  const originalText = openWebBtn.textContent;
+  openWebBtn.textContent = 'Membuka...';
+  openWebBtn.disabled = true;
+
+  // Open only the first tab from the list
+  const url = AUTO_OPEN_URLS[0]; // Take the first URL
+  chrome.tabs.create({ url: url }, (tab) => {
+    if (chrome.runtime.lastError) {
+      console.error('Error opening tab:', chrome.runtime.lastError);
+    } else {
+      console.log(`✅ Tab berhasil dibuka: ${url}`);
+    }
+  });
+
+  // Restore button after delay
+  setTimeout(() => {
+    openWebBtn.textContent = originalText;
+    openWebBtn.disabled = false;
+    console.log('Tab opened successfully');
+  }, 2000);
+}
+
+function handleRunScript() {
+  console.log('Running auto-fill script...');
+
+  // Check if user is authenticated and has profile data
+  if (!isAuthenticated) {
+    alert('❌ Error: Anda harus login terlebih dahulu!');
+    return;
+  }
+
+  // Show loading state
+  const originalText = runScriptBtn.textContent;
+  runScriptBtn.textContent = 'Menjalankan...';
+  runScriptBtn.disabled = true;
+
+  // Get current active tab and run autofill
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs.length === 0) {
+      alert('❌ Error: Tidak ada tab aktif!');
+      runScriptBtn.textContent = originalText;
+      runScriptBtn.disabled = false;
+      return;
+    }
+
+    const currentTab = tabs[0];
+    if (!currentTab.url.includes('antrianpanganbersubsidi.pasarjaya.co.id')) {
+      alert('❌ Error: Buka dulu website antrian terlebih dahulu!');
+      runScriptBtn.textContent = originalText;
+      runScriptBtn.disabled = false;
+      return;
+    }
+
+    // Send message to content script to run autofill
+    chrome.tabs.sendMessage(currentTab.id, { action: 'runAutofill' }, (response) => {
+      runScriptBtn.textContent = originalText;
+      runScriptBtn.disabled = false;
+
+      if (response && response.success) {
+        console.log('✅ Auto-fill berhasil dijalankan');
+        alert('✅ Auto-fill berhasil dijalankan!');
+      } else {
+        const errorMsg = response ? response.error : 'Tidak ada respons dari halaman';
+        console.error('❌ Auto-fill gagal:', errorMsg);
+        alert('❌ Auto-fill gagal: ' + errorMsg);
+      }
+    });
+  });
 }
 
 // State variables
@@ -103,10 +198,18 @@ async function init() {
       await initializeForm();
     }
 
-    // Always attach event listeners (login is always available)
+// Always attach event listeners (login is always available)
     console.log('Attaching event listeners...');
     attachEventListeners();
     console.log('✅ Event listeners attached');
+
+    // Initialize settings AFTER DOM and event listeners are ready
+    if (isAuthenticated) {
+      console.log('Initializing settings for authenticated user...');
+      setTimeout(() => {
+        initializeSettings();
+      }, 100); // Small delay to ensure DOM is fully ready
+    }
 
     console.log('=== INITIALIZATION COMPLETED ===');
   } catch (error) {
@@ -120,6 +223,24 @@ async function init() {
       console.error('Cannot set login status - element not found');
     }
   }
+}
+
+// Re-initialize elements and attach listeners (called after login)
+function reInitializeElementsAndListeners() {
+  console.log('Re-initializing elements and listeners...');
+  
+  // Re-initialize DOM elements (in case settings page elements weren't available before)
+  initializeElements();
+  
+  // Attach all event listeners
+  attachEventListeners();
+  
+  // Initialize settings if user is authenticated
+  if (isAuthenticated) {
+    initializeSettings();
+  }
+  
+  console.log('✅ Elements and listeners re-initialized');
 }
 
 async function loadOnlineData() {
@@ -233,6 +354,7 @@ function updateUI() {
   const contentArea = document.querySelector('.content-area');
   const actionsPage = document.getElementById('actionsPage');
   const formPage = document.getElementById('formPage');
+  const settingsPage = document.getElementById('settingsPage');
 
   // Update header with user ID
   if (headerUserId) {
@@ -248,14 +370,17 @@ function updateUI() {
 
     // Show header and navbar
     if (headerBar) headerBar.style.display = 'flex';
-    if (navbar) navbar.style.display = 'flex';
+    const navbarElement = document.querySelector('.navbar');
+    if (navbarElement) navbarElement.style.display = 'flex';
 
     // Remove login-only class from content area
     if (contentArea) contentArea.classList.remove('login-only');
 
-    // Show pages
+    // Show pages (let navigation.js handle the actual display logic)
+    // We'll just ensure the correct initial state based on auth
     if (actionsPage) actionsPage.style.display = 'block';
     if (formPage) formPage.style.display = 'none';
+    if (settingsPage) settingsPage.style.display = 'none';
 
     // Hide login form
     if (loginSection) loginSection.classList.add('hidden');
@@ -273,30 +398,29 @@ function updateUI() {
       console.error('userNameDisplay element not found!');
     }
 
-    // Update expiration display - always show in header after login
-    updateUserExpiryDisplay();
+    // Update user info in settings page
+    updateSettingsUserInfo();
+
+    // Initialize settings if user is authenticated
+    if (isAuthenticated) {
+      initializeSettings();
+    }
 
   } else {
     console.log('User not authenticated, showing login form only');
 
     // Hide header and navbar when not authenticated
     if (headerBar) headerBar.style.display = 'none';
-    if (navbar) navbar.style.display = 'none';
+    const navbarElement = document.querySelector('.navbar');
+    if (navbarElement) navbarElement.style.display = 'none';
 
-    // Hide all pages
-    if (actionsPage) actionsPage.style.display = 'none';
-    if (formPage) formPage.style.display = 'none';
-
-    // Add login-only class to content area for centering
+   
     if (contentArea) contentArea.classList.add('login-only');
 
-    // Tampilkan login form untuk non-authenticated users
-    if (loginSection) loginSection.classList.remove('hidden');
-
-    // Sembunyikan semua konten lainnya
-    if (userInfo) userInfo.classList.add('hidden');
-    if (userFormSection) userFormSection.classList.add('hidden');
-    if (adminSection) adminSection.classList.add('hidden');
+    // Hide all pages when not authenticated
+    if (actionsPage) actionsPage.style.display = 'none';
+    if (formPage) formPage.style.display = 'none';
+    if (settingsPage) settingsPage.style.display = 'none';
   }
 }
 
@@ -340,17 +464,68 @@ function attachEventListeners() {
     console.log('Logout button listener attached');
   }
 
-  // Settings button event
-  if (settingsBtn) {
-    settingsBtn.addEventListener('click', handleSettings);
+  // Settings button event (gear icon in header)
+  if (settingsBtn && isAuthenticated) {
+    settingsBtn.addEventListener('click', () => {
+      console.log('Settings button clicked - showing settings page');
+
+      // Hide navbar
+      const navbarElement = document.querySelector('.navbar');
+      if (navbarElement) navbarElement.style.display = 'none';
+
+      // Hide all pages
+      if (actionsPage) actionsPage.style.display = 'none';
+      if (formPage) formPage.style.display = 'none';
+
+      // Show only settings page
+      if (settingsPage) settingsPage.style.display = 'block';
+
+      // Update settings user info
+      updateSettingsUserInfo();
+    });
     console.log('Settings button listener attached');
   }
 
-  // Form events - hanya untuk authenticated users
+  // Back button event
+  if (backToMain && isAuthenticated) {
+    backToMain.addEventListener('click', () => {
+      console.log('Back button clicked - returning to main');
+
+      // Show navbar
+      const navbarElement = document.querySelector('.navbar');
+      if (navbarElement) navbarElement.style.display = 'flex';
+
+      // Hide settings page
+      if (settingsPage) settingsPage.style.display = 'none';
+
+      // Show actions page (default)
+      if (actionsPage) actionsPage.style.display = 'block';
+
+      // Update navbar active state
+      const actionsNavBtn = document.querySelector('.nav-btn[data-page="actions"]');
+      const formNavBtn = document.querySelector('.nav-btn[data-page="form"]');
+
+      if (actionsNavBtn) actionsNavBtn.classList.add('active');
+      if (formNavBtn) formNavBtn.classList.remove('active');
+    });
+    console.log('Back button listener attached');
+  }
+
+  // Quick action buttons - selalu aktif jika user authenticated
+  if (openWebBtn && isAuthenticated) {
+    openWebBtn.addEventListener('click', handleOpenWebsite);
+    console.log('Open website button listener attached');
+  }
+  if (runScriptBtn && isAuthenticated) {
+    runScriptBtn.addEventListener('click', handleRunScript);
+    console.log('Run script button listener attached');
+  }
+
+  // USER BIASA: Form dan aksi cepat events
   if (isAuthenticated) {
     console.log('Attaching authenticated user event listeners');
 
-    // USER BIASA: Form dan aksi cepat events
+    // Form events
     if (wilayahSelect) {
       wilayahSelect.addEventListener('change', handleWilayahChange);
       console.log('Wilayah select listener attached');
@@ -364,26 +539,31 @@ function attachEventListeners() {
       console.log('Reset location button listener attached');
     }
 
-    // Aksi cepat buttons
-    const openWebBtn = document.getElementById('openWeb');
-    if (openWebBtn) {
-      openWebBtn.addEventListener('click', () => {
-        chrome.tabs.create({ url: 'https://antrianpanganbersubsidi.pasarjaya.co.id/' });
-      });
-      console.log('Open web button listener attached');
-    }
+    // Settings events - selalu aktif jika user authenticated
+    if (isAuthenticated) {
+      console.log('Attaching settings event listeners');
 
-    const runScriptBtn = document.getElementById('runScript');
-    if (runScriptBtn) {
-      runScriptBtn.addEventListener('click', () => {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          chrome.scripting.executeScript({
-            target: { tabId: tabs[0].id },
-            files: ['content.js']
-          });
-        });
-      });
-      console.log('Run script button listener attached');
+      // Auto-open settings
+      if (autoOpenWebsiteToggle) {
+        autoOpenWebsiteToggle.addEventListener('change', handleAutoOpenToggle);
+        console.log('Auto-open toggle listener attached');
+      }
+      if (testAutoOpen) {
+        testAutoOpen.addEventListener('click', handleTestAutoOpen);
+        console.log('Test auto-open listener attached');
+      }
+
+      // Settings logout
+      if (settingsLogoutButton) {
+        settingsLogoutButton.addEventListener('click', handleLogout);
+        console.log('Settings logout button listener attached');
+      }
+
+      // New settings logout button
+      if (settingsLogoutBtn) {
+        settingsLogoutBtn.addEventListener('click', handleLogout);
+        console.log('New settings logout button listener attached');
+      }
     }
   } else {
     console.log('User not authenticated, skipping form event listeners');
@@ -443,6 +623,7 @@ async function handleLogin() {
       setTimeout(() => {
         attachEventListeners();
         initializeForm();
+        initializeSettings(); // Pastikan settings juga diinisialisasi
       }, 100);
     });
   } else {
@@ -484,7 +665,7 @@ function handleLogout() {
 
 function handleSettings() {
   console.log('Settings button clicked');
-  
+
   // Remove existing settings menu first
   const existingMenu = document.querySelector('.settings-menu');
   if (existingMenu) {
@@ -537,12 +718,19 @@ function handleSettings() {
     `;
 
     // Load saved setting
-    chrome.storage.local.get(['autoOpenWebsite'], (result) => {
-      autoOpenCheckbox.checked = !!result.autoOpenWebsite;
+    getStoredAutoOpenSettings().then((settings) => {
+      autoOpenCheckbox.checked = !!settings.enabled;
     });
 
     autoOpenCheckbox.addEventListener('change', (e) => {
-      chrome.storage.local.set({ autoOpenWebsite: e.target.checked }, () => {
+      const settings = {
+        enabled: e.target.checked,
+        hour: '7',
+        minute: '0',
+        timezone: 'Asia/Jakarta'
+      };
+
+      chrome.storage.local.set({ [STORAGE_KEYS.AUTO_OPEN_SETTINGS]: settings }, () => {
         console.log('Auto-open website setting saved:', e.target.checked);
         if (e.target.checked) {
           scheduleDailyWebsiteOpen();
@@ -556,39 +744,6 @@ function handleSettings() {
     autoOpenLabel.appendChild(document.createTextNode('Buka 5 tab otomatis (07:00)'));
 
     autoOpenDiv.appendChild(autoOpenLabel);
-
-    // Logout option
-    const logoutOption = document.createElement('div');
-    logoutOption.style.cssText = `
-      padding: 8px 12px;
-      cursor: pointer;
-      border-radius: 4px;
-      font-size: 13px;
-      color: #333;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: background-color 0.2s;
-    `;
-    logoutOption.innerHTML = '🚪 Logout';
-
-    logoutOption.addEventListener('mouseenter', () => {
-      logoutOption.style.backgroundColor = '#f5f5f5';
-    });
-
-    logoutOption.addEventListener('mouseleave', () => {
-      logoutOption.style.backgroundColor = 'transparent';
-    });
-
-    logoutOption.addEventListener('click', (e) => {
-      e.stopPropagation();
-      menuDiv.remove();
-      handleLogout();
-    });
-
-    menuDiv.appendChild(autoOpenDiv);
-    menuDiv.appendChild(logoutOption);
-    document.body.appendChild(menuDiv);
 
     // Remove menu when clicking outside
     setTimeout(() => {
@@ -607,21 +762,21 @@ function handleSettings() {
     // Show message that user needs to login
     const messageDiv = document.createElement('div');
     messageDiv.style.cssText = `
-      position: absolute; 
-      top: 45px; 
-      right: 16px; 
-      background: #fff3cd; 
-      border: 1px solid #ffeaa7; 
-      border-radius: 8px; 
-      padding: 8px 12px; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+      position: absolute;
+      top: 45px;
+      right: 16px;
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 8px;
+      padding: 8px 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       z-index: 1000;
       font-size: 12px;
       color: #856404;
     `;
     messageDiv.textContent = 'Login required';
     document.body.appendChild(messageDiv);
-    
+
     setTimeout(() => {
       messageDiv.remove();
     }, 2000);
@@ -656,10 +811,9 @@ async function initializeForm() {
 
 async function initializeAutoToggle() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(['autoMode'], (result) => {
-      if (autoSubmitToggle) {
-        autoSubmitToggle.checked = !!result.autoMode;
-      }
+    // Load saved setting
+    getStoredAutoOpenSettings().then((settings) => {
+      autoOpenCheckbox.checked = !!settings.enabled;
       resolve();
     });
   });
@@ -824,31 +978,103 @@ function scheduleDailyWebsiteOpen() {
     clearInterval(dailyWebsiteOpenInterval);
   }
 
-  // Check every minute for 07:00
-  dailyWebsiteOpenInterval = setInterval(() => {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
+  // Check every minute for 07:00 local time
+  dailyWebsiteOpenInterval = setInterval(async () => {
+    try {
+      const settings = await getStoredAutoOpenSettings();
 
-    // Check if it's 07:00 (7 AM)
-    if (currentHour === 7 && currentMinute === 0) {
-      chrome.storage.local.get(['autoOpenWebsite'], (result) => {
-        if (result.autoOpenWebsite) {
-          console.log('Auto-opening 5 tabs at 07:00');
+      if (!settings.enabled) {
+        return; // Auto-open is disabled
+      }
 
-          // Open 5 tabs simultaneously using configured URLs
-          AUTO_OPEN_URLS.forEach((url, index) => {
-            setTimeout(() => {
-              chrome.tabs.create({ url: url });
-              console.log(`Opened tab ${index + 1} with URL: ${url}`);
-            }, index * 500); // Stagger opening by 500ms to avoid overwhelming
+      // Use local device time (07:00)
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+
+      // Check if it's 07:00 (local time)
+      if (currentHour === 7 && currentMinute === 0) {
+        console.log('🚀 Starting full automation: Opening 5 tabs at 07:00 WIB with auto-fill');
+
+        // Get stored profile to check if auto-fill should run
+        const profileData = await new Promise((resolve) => {
+          chrome.storage.local.get([STORAGE_KEYS.PROFILE], (result) => {
+            resolve(result[STORAGE_KEYS.PROFILE] || { profile: null });
           });
-        }
-      });
+        });
+
+        const isAutoFillEnabled = profileData.profile?.autoSubmit !== false; // Default to true if not set
+
+        console.log('📋 Profile loaded, auto-fill enabled:', isAutoFillEnabled);
+
+        let openedTabs = [];
+        let completedTabs = 0;
+
+        // Open 5 tabs simultaneously using configured URLs
+        AUTO_OPEN_URLS.forEach((url, index) => {
+          setTimeout(() => {
+            chrome.tabs.create({ url: url }, (tab) => {
+              if (chrome.runtime.lastError) {
+                console.error('❌ Error opening tab:', chrome.runtime.lastError);
+              } else {
+                console.log(`✅ Tab ${index + 1} opened: ${url}`);
+                openedTabs.push(tab);
+
+                // Wait for tab to load completely, then run autofill if enabled
+                chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo, tabInfo) {
+                  if (tabId === tab.id && changeInfo.status === 'complete') {
+                    chrome.tabs.onUpdated.removeListener(listener);
+
+                    console.log(`🔄 Tab ${index + 1} fully loaded, checking auto-fill...`);
+
+                    // Run autofill on this tab if auto-fill is enabled
+                    if (isAutoFillEnabled) {
+                      setTimeout(() => {
+                        console.log(`🤖 Running auto-fill on tab ${index + 1}...`);
+                        chrome.tabs.sendMessage(tabId, { action: 'runAutofill' }, (response) => {
+                          completedTabs++;
+                          if (response && response.success) {
+                            console.log(`✅ Auto-fill SUCCESS on tab ${completedTabs}/${openedTabs.length}`);
+                          } else {
+                            const errorMsg = response ? response.error : 'No response from content script';
+                            console.error(`❌ Auto-fill FAILED on tab ${completedTabs}:`, errorMsg);
+                          }
+
+                          // Check if all tabs completed
+                          if (completedTabs >= openedTabs.length) {
+                            console.log('🎉 FULL AUTOMATION COMPLETED: All tabs opened and processed');
+                          }
+                        });
+                      }, 3000); // Wait 3 seconds after page load for maximum stability
+                    } else {
+                      console.log(`⚠️ Auto-fill disabled for tab ${index + 1}, marking as completed`);
+                      completedTabs++;
+                      if (completedTabs >= openedTabs.length) {
+                        console.log('✅ All tabs opened successfully (auto-fill disabled)');
+                      }
+                    }
+                  }
+                });
+              }
+            });
+          }, index * 1000); // Stagger opening by 1 second for better reliability
+        });
+
+        // Fallback timeout in case some tabs don't complete
+        setTimeout(() => {
+          if (completedTabs < openedTabs.length) {
+            console.warn(`⏰ Automation timeout: ${openedTabs.length} tabs opened, ${completedTabs} completed`);
+          } else {
+            console.log('🎯 Automation completed successfully within timeout');
+          }
+        }, 45000); // 45 second timeout for full automation
+      }
+    } catch (error) {
+      console.error('❌ Error in daily automation:', error);
     }
   }, 60 * 1000); // Check every minute
 
-  console.log('Daily website open (5 tabs) scheduled');
+  console.log('⏰ Daily automation scheduled for 07:00 WIB (5 tabs + auto-fill)');
 }
 
 function clearDailyWebsiteOpen() {
@@ -859,12 +1085,255 @@ function clearDailyWebsiteOpen() {
   }
 }
 
-// Initialize daily website open check when extension loads
-chrome.storage.local.get(['autoOpenWebsite'], (result) => {
-  if (result.autoOpenWebsite) {
-    scheduleDailyWebsiteOpen();
-    console.log('Auto-open 5 tabs at 07:00 is ENABLED');
+// Settings functions
+function updateSettingsUserInfo() {
+  if (!settingsUserId || !settingsUserStatus || !settingsUserExpiry) return;
+
+  if (isAuthenticated && currentUser) {
+    settingsUserId.textContent = currentUser.id;
+    settingsUserStatus.textContent = 'Aktif';
+
+    // Update expiration display for settings page
+    if (currentUser && currentUser.expires_at) {
+      const now = new Date();
+      const expiryDate = new Date(currentUser.expires_at);
+      const isExpired = expiryDate < now;
+      const timeDiff = expiryDate.getTime() - now.getTime();
+      const daysRemaining = Math.ceil(timeDiff / (24 * 60 * 60 * 1000));
+
+      let expiryText = '';
+      let expiryClass = '';
+
+      if (isExpired) {
+        expiryText = 'Akun Kadaluarsa';
+        expiryClass = 'expired';
+      } else if (daysRemaining <= 7) {
+        expiryText = `Kadaluarsa dalam ${daysRemaining} hari`;
+        expiryClass = 'warning';
+      } else {
+        expiryText = `Aktif hingga ${expiryDate.toLocaleDateString('id-ID')}`;
+        expiryClass = '';
+      }
+
+      settingsUserExpiry.textContent = expiryText;
+      settingsUserExpiry.className = `profile-value ${expiryClass}`;
+    } else {
+      settingsUserExpiry.textContent = '-';
+      settingsUserExpiry.className = 'profile-value';
+    }
   } else {
-    console.log('Auto-open 5 tabs at 07:00 is DISABLED');
+    settingsUserId.textContent = 'Guest';
+    settingsUserStatus.textContent = 'Tidak Login';
+    settingsUserExpiry.textContent = '-';
+    settingsUserExpiry.className = 'profile-value';
   }
-});
+}
+
+async function initializeSettings() {
+  try {
+    console.log('Initializing settings...');
+
+    // Load saved auto-open settings
+    const settings = await getStoredAutoOpenSettings();
+    console.log('Loaded auto-open settings:', settings);
+
+    // Update UI with saved settings
+    if (autoOpenWebsiteToggle) {
+      autoOpenWebsiteToggle.checked = !!settings.enabled;
+      console.log('Auto-open toggle set to:', settings.enabled);
+    }
+
+    if (autoFillToggle) {
+      autoFillToggle.checked = true; // Default to enabled
+    }
+
+    // Show/hide time settings based on SAVED toggle state
+    toggleAutoOpenTimeSettings(settings.enabled);
+
+    // Ensure scheduler is running if auto-open was enabled
+    if (settings.enabled) {
+      console.log('Auto-open was enabled, ensuring scheduler is running...');
+      scheduleDailyWebsiteOpen();
+    } else {
+      console.log('Auto-open was disabled, ensuring scheduler is cleared...');
+      clearDailyWebsiteOpen();
+    }
+
+    console.log('Settings initialized successfully');
+  } catch (error) {
+    console.error('Error initializing settings:', error);
+  }
+}
+
+function handleAutoOpenToggle() {
+  const isEnabled = autoOpenWebsiteToggle?.checked || false;
+  toggleAutoOpenTimeSettings(isEnabled);
+
+  // Save current state (fixed time 07:00)
+  const settings = {
+    enabled: isEnabled,
+    hour: '7', // Fixed to 07:00
+    minute: '0', // Fixed to :00
+    timezone: 'Asia/Jakarta' // Fixed timezone
+  };
+
+  chrome.storage.local.set({ [STORAGE_KEYS.AUTO_OPEN_SETTINGS]: settings }, () => {
+    console.log('Auto-open settings saved:', settings);
+    if (isEnabled) {
+      scheduleDailyWebsiteOpen();
+    } else {
+      clearDailyWebsiteOpen();
+    }
+  });
+}
+
+function toggleAutoOpenTimeSettings(enabled) {
+  const timeSettings = document.getElementById('timeSettings');
+  if (timeSettings) {
+    timeSettings.style.display = enabled ? 'block' : 'none';
+  }
+}
+
+async function handleSaveAutoOpenSettings() {
+  try {
+    const settings = {
+      enabled: autoOpenWebsiteToggle?.checked || false,
+      hour: '7', // Fixed to 07:00
+      minute: '0', // Fixed to :00
+      timezone: 'Asia/Jakarta' // Fixed timezone
+    };
+
+    chrome.storage.local.set({ [STORAGE_KEYS.AUTO_OPEN_SETTINGS]: settings }, () => {
+      if (chrome.runtime.lastError) {
+        alert('❌ Error: Gagal menyimpan pengaturan!\n' + chrome.runtime.lastError.message);
+        console.error('Save settings error:', chrome.runtime.lastError);
+      } else {
+        alert('✅ Pengaturan berhasil disimpan!\n\n⏰ Auto-open: ' + (settings.enabled ? 'Aktif' : 'Nonaktif') + '\n🕐 Waktu: 07:00 WIB (Tetap)');
+        console.log('Auto-open settings saved:', settings);
+
+        if (settings.enabled) {
+          scheduleDailyWebsiteOpen();
+        } else {
+          clearDailyWebsiteOpen();
+        }
+      }
+    });
+  } catch (error) {
+    alert('❌ Error: Terjadi kesalahan sistem!');
+    console.error('Save settings error:', error);
+  }
+}
+async function handleTestAutoOpen() {
+  try {
+    console.log('🚀 TEST FUNCTION CALLED');
+
+    // Check toggle states
+    const autoOpenEnabled = autoOpenWebsiteToggle?.checked || false;
+    const autoFillEnabled = autoFillToggle?.checked !== false; // Default to enabled if not set
+
+    console.log('Toggle states:', { autoOpenEnabled, autoFillEnabled });
+
+    if (!autoOpenEnabled) {
+      alert('❌ Error: Aktifkan dulu toggle Auto-Open Website untuk test!');
+      return;
+    }
+
+    console.log('✅ Starting test with', AUTO_OPEN_URLS.length, 'tabs');
+
+    // Show loading message
+    const testBtn = document.getElementById('testFeatures');
+    const originalText = testBtn.textContent;
+    testBtn.textContent = 'Membuka tabs...';
+    testBtn.disabled = true;
+
+    let openedTabs = [];
+    let completedTabs = 0;
+
+    // Open 5 tabs simultaneously using configured URLs
+    AUTO_OPEN_URLS.forEach((url, index) => {
+      setTimeout(() => {
+        chrome.tabs.create({ url: url }, (tab) => {
+          if (chrome.runtime.lastError) {
+            console.error('❌ Error opening tab:', chrome.runtime.lastError);
+          } else {
+            console.log(`✅ Tab ${index + 1} opened: ${url}`);
+            openedTabs.push(tab);
+
+            // Wait for tab to load completely, then run autofill if enabled
+            chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo, tabInfo) {
+              if (tabId === tab.id && changeInfo.status === 'complete') {
+                chrome.tabs.onUpdated.removeListener(listener);
+
+                console.log(`🔄 Tab ${index + 1} fully loaded, checking auto-fill...`);
+
+                // Run autofill on this tab if auto-fill is enabled
+                if (autoFillEnabled) {
+                  setTimeout(() => {
+                    console.log(`🤖 Running auto-fill on tab ${index + 1}...`);
+                    chrome.tabs.sendMessage(tabId, { action: 'runAutofill' }, (response) => {
+                      completedTabs++;
+                      if (response && response.success) {
+                        console.log(`✅ Auto-fill SUCCESS on tab ${completedTabs}/${openedTabs.length}`);
+                      } else {
+                        const errorMsg = response ? response.error : 'No response from content script';
+                        console.error(`❌ Auto-fill FAILED on tab ${completedTabs}:`, errorMsg);
+                      }
+
+                      // Check if all tabs completed
+                      if (completedTabs >= openedTabs.length) {
+                        console.log('🎉 TEST COMPLETED: All tabs opened and processed');
+                      }
+                    });
+                  }, 3000); // Wait 3 seconds after page load for maximum stability
+                } else {
+                  console.log(`⚠️ Auto-fill disabled for tab ${index + 1}, marking as completed`);
+                  completedTabs++;
+                  if (completedTabs >= openedTabs.length) {
+                    console.log('✅ All tabs opened successfully (auto-fill disabled)');
+                  }
+                }
+              }
+            });
+          }
+        });
+      }, index * 1000); // Stagger opening by 1 second for better reliability
+    });
+
+    // Final result
+    setTimeout(() => {
+      testBtn.textContent = originalText;
+      testBtn.disabled = false;
+
+      const successCount = openedTabs.length;
+      const fillStatus = autoFillEnabled ? 'dengan auto-fill' : 'tanpa auto-fill';
+
+      console.log(`🎉 Test completed: ${successCount} tabs opened, ${fillStatus}`);
+      alert(`✅ Test selesai!\n\n📋 ${successCount} tab berhasil dibuka\n🤖 Diisi ${fillStatus}\n\n⏰ Auto-open harian: 07:00 WIB`);
+    }, 1000);
+
+  } catch (error) {
+    console.error('❌ Test function error:', error);
+    alert('❌ Error: Gagal menjalankan test!');
+
+    // Restore button
+    const testBtn = document.getElementById('testFeatures');
+    if (testBtn) {
+      testBtn.textContent = 'Test Sekarang';
+      testBtn.disabled = false;
+    }
+  }
+}
+
+function getStoredAutoOpenSettings() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([STORAGE_KEYS.AUTO_OPEN_SETTINGS], (result) => {
+      const settings = result[STORAGE_KEYS.AUTO_OPEN_SETTINGS] || {
+        enabled: false,
+        hour: '7', // Fixed to 07:00
+        minute: '0', // Fixed to :00
+        timezone: 'Asia/Jakarta'
+      };
+      resolve(settings);
+    });
+  });
+}
