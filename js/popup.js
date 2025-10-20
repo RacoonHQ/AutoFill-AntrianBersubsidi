@@ -151,11 +151,11 @@ function handleRunScript() {
 
       if (response && response.success) {
         console.log('✅ Auto-fill berhasil dijalankan');
-        alert('✅ Auto-fill berhasil dijalankan!');
+        console.log('✅ Auto-fill berhasil dijalankan!');
       } else {
         const errorMsg = response ? response.error : 'Tidak ada respons dari halaman';
         console.error('❌ Auto-fill gagal:', errorMsg);
-        alert('❌ Auto-fill gagal: ' + errorMsg);
+        console.log('❌ Auto-fill gagal: ' + errorMsg);
       }
     });
   });
@@ -987,13 +987,29 @@ function scheduleDailyWebsiteOpen() {
         return; // Auto-open is disabled
       }
 
-      // Use local device time (07:00)
-      const now = new Date();
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
+      // Coba fetch waktu dari BMKG/API dulu
+      let currentTime;
+      try {
+        const bmkgTime = await window.BMKGTime.getBMKGTime(); // Panggil dari bmkg-time.js
+        currentTime = {
+          hours: bmkgTime.hours,
+          minutes: bmkgTime.minutes,
+          source: bmkgTime.source // Untuk logging
+        };
+        console.log(`Menggunakan waktu dari ${currentTime.source}`);
+      } catch (error) {
+        console.warn('Gagal fetch waktu BMKG, fallback ke waktu lokal:', error.message);
+        // Fallback ke waktu lokal
+        const now = new Date();
+        currentTime = {
+          hours: now.getHours(),
+          minutes: now.getMinutes(),
+          source: 'local'
+        };
+      }
 
-      // Check if it's 07:00 (local time)
-      if (currentHour === 7 && currentMinute === 0) {
+      // Check if it's 07:00 (gunakan waktu dari BMKG atau lokal)
+      if (currentTime.hours === 7 && currentTime.minutes === 0) {
         console.log('🚀 Starting full automation: Opening 5 tabs at 07:00 WIB with auto-fill');
 
         // Get stored profile to check if auto-fill should run
@@ -1234,7 +1250,7 @@ async function handleTestAutoOpen() {
     console.log('Toggle states:', { autoOpenEnabled, autoFillEnabled });
 
     if (!autoOpenEnabled) {
-      alert('❌ Error: Aktifkan dulu toggle Auto-Open Website untuk test!');
+      console.error('❌ Error: Aktifkan dulu toggle Auto-Open Website untuk test!');
       return;
     }
 
@@ -1308,7 +1324,7 @@ async function handleTestAutoOpen() {
       const fillStatus = autoFillEnabled ? 'dengan auto-fill' : 'tanpa auto-fill';
 
       console.log(`🎉 Test completed: ${successCount} tabs opened, ${fillStatus}`);
-      alert(`✅ Test selesai!\n\n📋 ${successCount} tab berhasil dibuka\n🤖 Diisi ${fillStatus}\n\n⏰ Auto-open harian: 07:00 WIB`);
+      console.log(`✅ Test selesai!\n\n📋 ${successCount} tab berhasil dibuka\n🤖 Diisi ${fillStatus}\n\n⏰ Auto-open harian: 07:00 WIB`);
     }, 1000);
 
   } catch (error) {

@@ -50,9 +50,9 @@ body {
 
 .user-info-header {
   display: flex;
-  flex-direction: column;
-  align-items: left;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
 }
 
 .user-id {
@@ -64,8 +64,8 @@ body {
 .user-expiry {
   font-size: 11px;
   color: #7f8c8d;
-  text-align: center;
   min-height: 14px;
+  white-space: nowrap;
 }
 
 .user-expiry.warning {
@@ -86,6 +86,29 @@ body {
 .user-expiry.warning::before {
   content: "⏰ ";
   font-size: 10px;
+}
+
+/* BMKG Clock Styles */
+.bmkg-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-right: 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: right;
+  color: #2c3e50;
+}
+
+#bmkgTime {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+#bmkgDate {
+  font-size: 11px;
+  color: #7f8c8d;
 }
 
 .settings-btn {
