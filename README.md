@@ -83,4 +83,4 @@ Ekstensi Chrome sederhana untuk membantu mengisi formulir antrian pangan bersubs
 Jika mengalami masalah, silakan hubungi admin sistem untuk mendapatkan kredensial login atau bantuan teknis.
 
 ---
-**Versi:** 2.0.0 | **Pengembang:** RacoonHQ
+**Versi:** 2.0.1 | **Pengembang:** RacoonHQ
