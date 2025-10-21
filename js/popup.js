@@ -996,7 +996,7 @@ function scheduleDailyWebsiteOpen() {
           minutes: bmkgTime.minutes,
           source: bmkgTime.source // Untuk logging
         };
-        console.log(`Menggunakan waktu dari ${currentTime.source}`);
+        console.log(`Menggunakan waktu dari ${currentTime.source}: ${currentTime.hours}:${currentTime.minutes}`);
       } catch (error) {
         console.warn('Gagal fetch waktu BMKG, fallback ke waktu lokal:', error.message);
         // Fallback ke waktu lokal
@@ -1006,9 +1006,11 @@ function scheduleDailyWebsiteOpen() {
           minutes: now.getMinutes(),
           source: 'local'
         };
+        console.log(`Fallback ke waktu lokal: ${currentTime.hours}:${currentTime.minutes}`);
       }
 
       // Check if it's 07:00 (gunakan waktu dari BMKG atau lokal)
+      console.log(`Checking time: ${currentTime.hours}:${currentTime.minutes} vs 7:0`);
       if (currentTime.hours === 7 && currentTime.minutes === 0) {
         console.log('🚀 Starting full automation: Opening 5 tabs at 07:00 WIB with auto-fill');
 
